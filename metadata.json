@@ -1,0 +1,7 @@
+{
+  "name": "Neurovox Ai",
+  "description": "AI-powered face scan for accurate mask sizing.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
