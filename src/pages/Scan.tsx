@@ -567,37 +567,37 @@ export default function Scan() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 50, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 bg-beige/95 backdrop-blur-xl p-6 rounded-3xl border border-white/20 shadow-2xl text-olive w-11/12 max-w-sm z-30 max-h-[85vh] overflow-y-auto"
+                  className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 bg-beige/95 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-white/20 shadow-2xl text-olive w-11/12 max-w-sm z-30 max-h-[70vh] overflow-y-auto"
                 >
                   {orderPlaced ? (
-                    <div className="text-center py-6 space-y-4">
-                      <div className="w-16 h-16 rounded-full bg-sage/20 flex items-center justify-center text-olive-dark mx-auto mb-4">
-                        <CheckCircle2 className="w-8 h-8" />
+                    <div className="text-center py-4 space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-sage/20 flex items-center justify-center text-olive-dark mx-auto mb-3">
+                        <CheckCircle2 className="w-6 h-6" />
                       </div>
-                      <h3 className="font-semibold text-2xl">Order Placed!</h3>
+                      <h3 className="font-semibold text-xl">Order Placed!</h3>
                       <p className="text-olive-light text-sm">
                         Your {MASKS.find(m => m.id === selectedMask)?.name} (Size {maskSize}) is being prepared.
                       </p>
                       <button 
                         onClick={() => { setMaskSize(null); setSelectedMask(null); setOrderPlaced(false); }}
-                        className="w-full py-3 mt-6 bg-olive text-cream rounded-xl font-medium hover:bg-olive-light transition-colors"
+                        className="w-full py-2.5 mt-4 bg-olive text-cream rounded-xl font-medium hover:bg-olive-light transition-colors"
                       >
                         Start New Scan
                       </button>
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full bg-sage/20 flex items-center justify-center text-olive-dark">
-                          <CheckCircle2 className="w-6 h-6" />
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-sage/20 flex items-center justify-center text-olive-dark">
+                          <CheckCircle2 className="w-5 h-5" />
                         </div>
                         <h3 className="font-semibold text-lg">Scan Complete</h3>
                       </div>
                       
-                      <div className="space-y-4">
-                        <div className="text-center bg-white/50 rounded-2xl py-4">
-                          <p className="text-sm text-olive-light mb-1">Recommended Size</p>
-                          <p className="text-5xl font-bold tracking-tight text-olive-dark">
+                      <div className="space-y-3">
+                        <div className="text-center bg-white/50 rounded-2xl py-3">
+                          <p className="text-xs text-olive-light mb-1">Recommended Size</p>
+                          <p className="text-4xl font-bold tracking-tight text-olive-dark">
                             {maskSize}
                           </p>
                         </div>
@@ -627,13 +627,13 @@ export default function Scan() {
 
                         <div className="space-y-2">
                           <p className="text-sm font-medium text-olive-dark">Select Style</p>
-                          <div className="grid grid-cols-1 gap-2">
+                          <div className="grid grid-cols-1 gap-1.5">
                             {MASKS.map(mask => (
                               <button
                                 key={mask.id}
                                 onClick={() => setSelectedMask(mask.id)}
                                 className={cn(
-                                  "text-left px-4 py-3 rounded-xl border transition-all text-sm",
+                                  "text-left px-4 py-2.5 rounded-xl border transition-all text-sm",
                                   selectedMask === mask.id 
                                     ? "border-sage bg-sage/20 text-olive-dark font-medium" 
                                     : "border-olive/10 hover:border-sage/50 text-olive-light bg-white/30"
@@ -645,9 +645,9 @@ export default function Scan() {
                           </div>
                         </div>
 
-                        <div className="sticky bottom-0 pt-4 pb-2 bg-beige/95 backdrop-blur-md border-t border-olive/10 mt-4 -mx-6 px-6">
+                        <div className="sticky bottom-0 pt-3 pb-1 bg-beige/95 backdrop-blur-md border-t border-olive/10 mt-3 -mx-4 px-4 md:-mx-5 md:px-5">
                           {selectedMask && (
-                            <div className="mb-3 text-sm text-center text-olive-dark font-medium">
+                            <div className="mb-2 text-xs text-center text-olive-dark font-medium">
                               Selected: {MASKS.find(m => m.id === selectedMask)?.name} (Size: {maskSize})
                             </div>
                           )}
@@ -655,7 +655,7 @@ export default function Scan() {
                             disabled={!selectedMask}
                             onClick={() => setOrderPlaced(true)}
                             className={cn(
-                              "w-full py-3 rounded-xl font-medium transition-all duration-300 shadow-sm",
+                              "w-full py-2.5 rounded-xl font-medium transition-all duration-300 shadow-sm text-sm",
                               selectedMask 
                                 ? "bg-[#AEB784] text-[#41431B] hover:scale-[1.02] active:scale-[0.98] hover:shadow-md" 
                                 : "bg-olive/5 text-olive/40 cursor-not-allowed opacity-70"
@@ -666,7 +666,7 @@ export default function Scan() {
                           
                           <button 
                             onClick={() => { setMaskSize(null); setSelectedMask(null); }}
-                            className="w-full py-3 mt-2 bg-transparent text-olive-light rounded-xl font-medium hover:bg-olive/5 transition-colors text-sm"
+                            className="w-full py-2 mt-1 bg-transparent text-olive-light rounded-xl font-medium hover:bg-olive/5 transition-colors text-xs"
                           >
                             Scan Again
                           </button>
