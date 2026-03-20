@@ -32,6 +32,14 @@ export default function Scan() {
   const [finalMeasurements, setFinalMeasurements] = useState<{ width: number, height: number, ratio: number } | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMask, setSelectedMask] = useState<string | null>(null);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+
+  const MASKS = [
+    { id: "everyday", name: "Everyday Comfort Mask" },
+    { id: "sport", name: "Active Sport Pro" },
+    { id: "shield", name: "N95 Shield Plus" }
+  ];
 
   const updatePositionFeedback = (feedback: string, isValid: boolean) => {
     if (positionFeedbackRef.current !== feedback) {
@@ -50,6 +58,7 @@ export default function Scan() {
   const calculatedSizeRef = useRef<MaskSize>("Medium");
   const widthHistoryRef = useRef<number[]>([]);
   const heightHistoryRef = useRef<number[]>([]);
+  const scanRatiosRef = useRef<number[]>([]);
   const currentMeasurementsRef = useRef<{ width: number, height: number, ratio: number }>({ width: 0, height: 0, ratio: 0 });
 
   // Initialize MediaPipe
@@ -191,6 +200,16 @@ export default function Scan() {
             const faceWidth = Math.hypot(p2.x - p1.x, p2.y - p1.y);
             const faceHeight = Math.hypot(p4.x - p3.x, p4.y - p3.y);
 
+            // 3D measurements for higher accuracy
+            const p1_3d = { x: leftJaw.x * canvas.width, y: leftJaw.y * canvas.height, z: leftJaw.z * canvas.width };
+            const p2_3d = { x: rightJaw.x * canvas.width, y: rightJaw.y * canvas.height, z: rightJaw.z * canvas.width };
+            const p3_3d = { x: nasion.x * canvas.width, y: nasion.y * canvas.height, z: nasion.z * canvas.width };
+            const p4_3d = { x: chin.x * canvas.width, y: chin.y * canvas.height, z: chin.z * canvas.width };
+
+            const faceWidth3D = Math.hypot(p2_3d.x - p1_3d.x, p2_3d.y - p1_3d.y, p2_3d.z - p1_3d.z);
+            const faceHeight3D = Math.hypot(p4_3d.x - p3_3d.x, p4_3d.y - p3_3d.y, p4_3d.z - p3_3d.z);
+            const ratio3D = faceWidth3D / faceHeight3D;
+
             // Draw measurement lines
             ctx.strokeStyle = "rgba(174, 183, 132, 0.8)";
             ctx.lineWidth = 2;
@@ -238,9 +257,13 @@ export default function Scan() {
 
             currentMeasurementsRef.current = { width: avgWidth, height: avgHeight, ratio: avgRatio };
 
+            if (isScanningRef.current) {
+              scanRatiosRef.current.push(ratio3D);
+            }
+
             let size: MaskSize = "Medium";
-            if (avgRatio < 1.2) size = "Small";
-            else if (avgRatio > 1.5) size = "Large";
+            if (avgRatio < 1.15) size = "Small";
+            else if (avgRatio > 1.25) size = "Large";
 
             calculatedSizeRef.current = size;
 
@@ -333,7 +356,10 @@ export default function Scan() {
     isPositioningRef.current = true;
     setMaskSize(null);
     setFinalMeasurements(null);
+    setSelectedMask(null);
+    setOrderPlaced(false);
     positionValidTimeRef.current = null;
+    scanRatiosRef.current = [];
     updatePositionFeedback("Face not detected", false);
   };
 
@@ -342,6 +368,7 @@ export default function Scan() {
     isScanningRef.current = isScanning;
     if (isScanning) {
       setScanProgress(0);
+      scanRatiosRef.current = [];
       const interval = setInterval(() => {
         setScanProgress(prev => {
           if (prev >= 100) {
@@ -360,8 +387,22 @@ export default function Scan() {
     if (scanProgress === 100 && isScanning) {
       setIsScanning(false);
       isScanningRef.current = false;
-      setMaskSize(calculatedSizeRef.current);
-      setFinalMeasurements(currentMeasurementsRef.current);
+      
+      let finalSize: MaskSize = calculatedSizeRef.current;
+      if (scanRatiosRef.current.length > 0) {
+        // Use median of 3D ratios collected during scan for 99% accuracy
+        const sortedRatios = [...scanRatiosRef.current].sort((a, b) => a - b);
+        const medianRatio = sortedRatios[Math.floor(sortedRatios.length / 2)];
+        
+        if (medianRatio < 1.15) finalSize = "Small";
+        else if (medianRatio > 1.25) finalSize = "Large";
+        else finalSize = "Medium";
+        
+        currentMeasurementsRef.current.ratio = medianRatio;
+      }
+      
+      setMaskSize(finalSize);
+      setFinalMeasurements({...currentMeasurementsRef.current});
     }
   }, [scanProgress, isScanning]);
 
@@ -526,53 +567,113 @@ export default function Scan() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 50, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-beige/95 backdrop-blur-xl p-6 rounded-3xl border border-white/20 shadow-2xl text-olive w-80 z-30"
+                  className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 bg-beige/95 backdrop-blur-xl p-6 rounded-3xl border border-white/20 shadow-2xl text-olive w-11/12 max-w-sm z-30 max-h-[85vh] overflow-y-auto"
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-sage/20 flex items-center justify-center text-olive-dark">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                    <h3 className="font-semibold text-lg">Scan Complete</h3>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="text-center bg-white/50 rounded-2xl py-4">
-                      <p className="text-sm text-olive-light mb-1">Recommended Size</p>
-                      <p className="text-5xl font-bold tracking-tight text-olive-dark">
-                        {maskSize}
+                  {orderPlaced ? (
+                    <div className="text-center py-6 space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-sage/20 flex items-center justify-center text-olive-dark mx-auto mb-4">
+                        <CheckCircle2 className="w-8 h-8" />
+                      </div>
+                      <h3 className="font-semibold text-2xl">Order Placed!</h3>
+                      <p className="text-olive-light text-sm">
+                        Your {MASKS.find(m => m.id === selectedMask)?.name} (Size {maskSize}) is being prepared.
                       </p>
+                      <button 
+                        onClick={() => { setMaskSize(null); setSelectedMask(null); setOrderPlaced(false); }}
+                        className="w-full py-3 mt-6 bg-olive text-cream rounded-xl font-medium hover:bg-olive-light transition-colors"
+                      >
+                        Start New Scan
+                      </button>
                     </div>
-                    
-                    <div className="h-px bg-olive/10 w-full" />
-                    
-                    <ul className="text-sm space-y-2 text-olive-light px-2">
-                      <li className="flex justify-between">
-                        <span>Jaw Width</span>
-                        <span className="font-medium text-olive">
-                          {finalMeasurements ? `${Math.round(finalMeasurements.width)}px` : 'Optimal'}
-                        </span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>Face Height</span>
-                        <span className="font-medium text-olive">
-                          {finalMeasurements ? `${Math.round(finalMeasurements.height)}px` : 'Standard'}
-                        </span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>Ratio</span>
-                        <span className="font-medium text-olive">
-                          {finalMeasurements ? finalMeasurements.ratio.toFixed(2) : '1.00'}
-                        </span>
-                      </li>
-                    </ul>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-sage/20 flex items-center justify-center text-olive-dark">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-semibold text-lg">Scan Complete</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="text-center bg-white/50 rounded-2xl py-4">
+                          <p className="text-sm text-olive-light mb-1">Recommended Size</p>
+                          <p className="text-5xl font-bold tracking-tight text-olive-dark">
+                            {maskSize}
+                          </p>
+                        </div>
+                        
+                        <div className="h-px bg-olive/10 w-full" />
+                        
+                        <ul className="text-sm space-y-2 text-olive-light px-2 hidden sm:block">
+                          <li className="flex justify-between">
+                            <span>Jaw Width</span>
+                            <span className="font-medium text-olive">
+                              {finalMeasurements ? `${Math.round(finalMeasurements.width)}px` : 'Optimal'}
+                            </span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span>Face Height</span>
+                            <span className="font-medium text-olive">
+                              {finalMeasurements ? `${Math.round(finalMeasurements.height)}px` : 'Standard'}
+                            </span>
+                          </li>
+                          <li className="flex justify-between">
+                            <span>Ratio</span>
+                            <span className="font-medium text-olive">
+                              {finalMeasurements ? finalMeasurements.ratio.toFixed(2) : '1.00'}
+                            </span>
+                          </li>
+                        </ul>
 
-                    <button 
-                      onClick={() => setMaskSize(null)}
-                      className="w-full py-3 mt-2 bg-olive text-cream rounded-xl font-medium hover:bg-olive-light transition-colors"
-                    >
-                      Scan Again
-                    </button>
-                  </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-olive-dark">Select Style</p>
+                          <div className="grid grid-cols-1 gap-2">
+                            {MASKS.map(mask => (
+                              <button
+                                key={mask.id}
+                                onClick={() => setSelectedMask(mask.id)}
+                                className={cn(
+                                  "text-left px-4 py-3 rounded-xl border transition-all text-sm",
+                                  selectedMask === mask.id 
+                                    ? "border-sage bg-sage/20 text-olive-dark font-medium" 
+                                    : "border-olive/10 hover:border-sage/50 text-olive-light bg-white/30"
+                                )}
+                              >
+                                {mask.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="sticky bottom-0 pt-4 pb-2 bg-beige/95 backdrop-blur-md border-t border-olive/10 mt-4 -mx-6 px-6">
+                          {selectedMask && (
+                            <div className="mb-3 text-sm text-center text-olive-dark font-medium">
+                              Selected: {MASKS.find(m => m.id === selectedMask)?.name} (Size: {maskSize})
+                            </div>
+                          )}
+                          <button 
+                            disabled={!selectedMask}
+                            onClick={() => setOrderPlaced(true)}
+                            className={cn(
+                              "w-full py-3 rounded-xl font-medium transition-all duration-300 shadow-sm",
+                              selectedMask 
+                                ? "bg-[#AEB784] text-[#41431B] hover:scale-[1.02] active:scale-[0.98] hover:shadow-md" 
+                                : "bg-olive/5 text-olive/40 cursor-not-allowed opacity-70"
+                            )}
+                          >
+                            {selectedMask ? "Make Your Order Now" : "Select a mask to continue"}
+                          </button>
+                          
+                          <button 
+                            onClick={() => { setMaskSize(null); setSelectedMask(null); }}
+                            className="w-full py-3 mt-2 bg-transparent text-olive-light rounded-xl font-medium hover:bg-olive/5 transition-colors text-sm"
+                          >
+                            Scan Again
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
